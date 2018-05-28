@@ -97,6 +97,24 @@ class ControllerApplication(zigpy.util.ListenableMixin):
         if dev is not None:
             self.listener_event('device_left', dev)
 
+    def add_update_device_from_network(self, nwk, ieee):
+        LOGGER.info("Adding or updating device 0x%04x (%s) from the network", nwk, ieee)
+        if ieee in self.devices:
+            dev = self.get_device(ieee)
+            if dev.nwk != nwk:
+                LOGGER.debug("Device %s changed id (0x%04x => 0x%04x)", ieee, dev.nwk, nwk)
+                dev.nwk = nwk
+            elif dev.initializing:
+                LOGGER.warning("Skipping initialization as device is already initializing %s", ieee)
+                return dev
+            dev.status = zigpy.device.Status.NEW
+        else:
+            dev = self.add_device(ieee, nwk)
+
+        dev.schedule_initialize()
+
+        return dev
+
     @zigpy.util.retryable_request
     async def request(self, nwk, profile, cluster, src_ep, dst_ep, sequence, data, expect_reply=True, timeout=10):
         raise NotImplementedError
