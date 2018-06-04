@@ -64,6 +64,10 @@ class ZDO(zigpy.util.LocalLogMixin, zigpy.util.ListenableMixin):
             broadcast = (0xffff, 0xfffd, 0xfffc)
             if args[0] in broadcast or app.nwk == args[0]:
                 self.reply(0x8001, 0, app.ieee, app.nwk, 0, 0, [])
+        elif command_id == 0x0004:  # Simple_Desc_req
+            self.handle_simple_desc_req(*args)
+        elif command_id == 0x0005:  # Active_EP_req
+            self.handle_active_ep_req(*args)
         elif command_id == 0x0006:  # Match_Desc_req
             self.handle_match_desc(*args)
         elif command_id == 0x0013:  # Device_annce
@@ -81,6 +85,21 @@ class ZDO(zigpy.util.LocalLogMixin, zigpy.util.ListenableMixin):
             response = (0x8006, 0, local_addr, [])
 
         self.reply(*response)
+
+    def handle_active_ep_req(self, addr):
+        # reply with 1 endpoint just in case someone asks (e.g. deCONZ seems to query over and over again until it gets a reply)
+        self.reply(0x8005, 0, self._device.application.nwk, [t.uint8_t(1)])
+
+    def handle_simple_desc_req(self, addr, endpoint):
+        # simulate a dummy endpoint with no clusters
+        sd = types.SizePrefixedSimpleDescriptor()
+        sd.endpoint = endpoint
+        sd.profile = t.uint16_t(0x0104) # Home Automation
+        sd.device_type = t.uint16_t(0x0005) # Configuration Tool
+        sd.device_version = t.uint8_t(0)
+        sd.input_clusters = t.LVList(t.uint16_t)([]) # no input clusters
+        sd.output_clusters = t.LVList(t.uint16_t)([]) # no output clusters
+        self.reply(0x8004, 0, self._device.application.nwk, sd)
 
     def bind(self, endpoint, cluster):
         dstaddr = types.MultiAddress()
