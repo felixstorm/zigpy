@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="zigpy",
-    version="0.1.0",
+    version="0.1.0.devfstorm0",
     description="Library implementing a ZigBee stack",
     url="http://github.com/zigpy/zigpy",
     author="Russell Cloran",
