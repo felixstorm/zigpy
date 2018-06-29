@@ -54,15 +54,19 @@ class ControllerApplication(zigpy.util.ListenableMixin):
             LOGGER.debug("Device not found for removal: %s", ieee)
             return
         LOGGER.info("Removing device 0x%04x (%s)", dev.nwk, ieee)
-        zdo_worked = False
-        try:
-            resp = await dev.zdo.leave()
-            zdo_worked = resp[0] == 0
-        except Exception as exc:
-            pass
 
-        if not zdo_worked:
-            await self.force_remove(dev)
+        # Only force device to leave if we're the ZigBee coordinator ourselves
+        if self.nwk == 0x0000:
+            zdo_worked = False
+            try:
+                resp = await dev.zdo.leave()
+                zdo_worked = resp[0] == 0
+            except Exception as exc:
+                pass
+            if not zdo_worked:
+                await self.force_remove(dev)
+        else:
+            LOGGER.info("  Somebody else is coordinating this ZigBee network, so just removing from our database.")
 
         self.listener_event('device_removed', dev)
 
